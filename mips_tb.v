@@ -24,20 +24,20 @@
 
 module mips_tb();
     
-    // Inputs to the processor
+    
     reg clk;
     reg reset;
 
-    // Instantiate the Top-Level Processor (The Motherboard)
+    
     mips_top uut (
         .clk(clk),
         .reset(reset)
     );
 
-    // Clock Generator: 100MHz (10ns period -> toggles every 5ns)
+    
     always #5 clk = ~clk;
 
-    // Simulation Sequence
+    
     initial begin
         // 1. Boot up and hold Reset
         clk = 0;
