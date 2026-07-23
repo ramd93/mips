@@ -19,15 +19,9 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-// ============================================================================
-// ULTIMATE 5-STAGE PIPELINED MIPS PROCESSOR (Simplified Mux Syntax)
-// Handles: Structural Hazards, Data Hazards, Load-Use Hazards, Control Hazards, 
-// AND Branch-Data Hazards (Stall + ID-Stage Forwarding)
-// ============================================================================
 
-// ----------------------------------------------------------------------------
 // 1. FOUNDATION BLOCKS
-// ----------------------------------------------------------------------------
+
 
 module register_file(
     input clk, reset, reg_write,
@@ -58,11 +52,11 @@ module alu(
 );
     always @(*) begin
         case(alu_control)
-            4'b0000: result = a & b; // AND
-            4'b0001: result = a | b; // OR
-            4'b0010: result = a + b; // ADD
-            4'b0110: result = a - b; // SUB
-            4'b0111: result = (a < b) ? 32'd1 : 32'd0; // SLT
+            4'b0000: result = a & b; 
+            4'b0001: result = a | b; 
+            4'b0010: result = a + b; 
+            4'b0110: result = a - b; 
+            4'b0111: result = (a < b) ? 32'd1 : 32'd0; 
             default: result = 32'b0;
         endcase
     end
@@ -73,7 +67,7 @@ module instruction_memory(
 );
     reg [31:0] rom [0:255];
     initial $readmemh("machine_code.mem", rom);
-    assign instruction = rom[pc[9:2]]; // Word aligned
+    assign instruction = rom[pc[9:2]]; 
 endmodule
 
 module data_memory(
@@ -88,9 +82,9 @@ module data_memory(
     end
 endmodule
 
-// ----------------------------------------------------------------------------
+
 // 2. CONTROL & HAZARD UNITS
-// ----------------------------------------------------------------------------
+
 
 module main_control(
     input [5:0] opcode,
@@ -101,11 +95,11 @@ module main_control(
         reg_dst = 0; alu_src = 0; mem_to_reg = 0; reg_write = 0; 
         mem_read = 0; mem_write = 0; branch = 0; alu_op = 2'b00;
         case(opcode)
-            6'b000000: begin reg_dst=1; reg_write=1; alu_op=2'b10; end // R-Type
-            6'b100011: begin alu_src=1; mem_to_reg=1; reg_write=1; mem_read=1; alu_op=2'b00; end // lw
-            6'b101011: begin alu_src=1; mem_write=1; alu_op=2'b00; end // sw
-            6'b000100: begin branch=1; alu_op=2'b01; end // beq
-            6'b001000: begin alu_src=1; reg_write=1; alu_op=2'b00; end // addi
+            6'b000000: begin reg_dst=1; reg_write=1; alu_op=2'b10; end 
+            6'b100011: begin alu_src=1; mem_to_reg=1; reg_write=1; mem_read=1; alu_op=2'b00; end 
+            6'b101011: begin alu_src=1; mem_write=1; alu_op=2'b00; end 
+            6'b000100: begin branch=1; alu_op=2'b01; end 
+            6'b001000: begin alu_src=1; reg_write=1; alu_op=2'b00; end 
         endcase
     end
 endmodule
@@ -115,14 +109,14 @@ module alu_control(
 );
     always @(*) begin
         case(alu_op)
-            2'b00: alu_ctrl = 4'b0010; // lw/sw
-            2'b01: alu_ctrl = 4'b0110; // beq
-            2'b10: case(funct)         // R-Type
-                6'b100000: alu_ctrl = 4'b0010; // add
-                6'b100010: alu_ctrl = 4'b0110; // sub
-                6'b100100: alu_ctrl = 4'b0000; // and
-                6'b100101: alu_ctrl = 4'b0001; // or
-                6'b101010: alu_ctrl = 4'b0111; // slt
+            2'b00: alu_ctrl = 4'b0010; 
+            2'b01: alu_ctrl = 4'b0110; 
+            2'b10: case(funct)         
+                6'b100000: alu_ctrl = 4'b0010; 
+                6'b100010: alu_ctrl = 4'b0110; 
+                6'b100100: alu_ctrl = 4'b0000; 
+                6'b100101: alu_ctrl = 4'b0001; 
+                6'b101010: alu_ctrl = 4'b0111; 
                 default: alu_ctrl = 4'b0000;
             endcase
             default: alu_ctrl = 4'b0000;
@@ -160,7 +154,7 @@ module hazard_detection_unit(
     end
 endmodule
 
-// EX Stage Forwarding Unit
+
 module forwarding_unit(
     input [4:0] id_ex_rs, id_ex_rt, ex_mem_rd, mem_wb_rd,
     input ex_mem_reg_write, mem_wb_reg_write,
@@ -171,13 +165,12 @@ module forwarding_unit(
         // EX Hazard
         if (ex_mem_reg_write && (ex_mem_rd != 0) && (ex_mem_rd == id_ex_rs)) forward_a = 2'b10;
         if (ex_mem_reg_write && (ex_mem_rd != 0) && (ex_mem_rd == id_ex_rt)) forward_b = 2'b10;
-        // MEM Hazard (Double Hazard protected)
+        // MEM Hazard 
         if (mem_wb_reg_write && (mem_wb_rd != 0) && !(ex_mem_reg_write && (ex_mem_rd != 0) && (ex_mem_rd == id_ex_rs)) && (mem_wb_rd == id_ex_rs)) forward_a = 2'b01;
         if (mem_wb_reg_write && (mem_wb_rd != 0) && !(ex_mem_reg_write && (ex_mem_rd != 0) && (ex_mem_rd == id_ex_rt)) && (mem_wb_rd == id_ex_rt)) forward_b = 2'b01;
     end
 endmodule
 
-// ID Stage Forwarding Unit
 module id_forwarding_unit(
     input [4:0] rs, rt,
     input [4:0] ex_mem_rd, mem_wb_rd,
@@ -194,7 +187,7 @@ module id_forwarding_unit(
     end
 endmodule
 
-// Optimized ID-Stage Branch Hardware
+
 module branch_hardware(
     input [31:0] pc_plus_4, sign_ext_imm, cmp_in_a, cmp_in_b,
     input branch_control,
@@ -206,9 +199,9 @@ module branch_hardware(
     assign if_flush = pc_src; 
 endmodule
 
-// ----------------------------------------------------------------------------
+
 // 3. PIPELINE REGISTERS
-// ----------------------------------------------------------------------------
+
 
 module if_id_reg(
     input clk, reset, write_en, flush,
@@ -287,21 +280,19 @@ module mem_wb_reg(
     end
 endmodule
 
-// ----------------------------------------------------------------------------
-// 4. THE MOTHERBOARD (TOP MODULE)
-// ----------------------------------------------------------------------------
+
+// 4. TOP MODULE
+
 
 module mips_top(
     input clk,
     input reset
 );
 
-    // =======================================================
-    // INTERNAL WIRES AND REGS
-    // =======================================================
+   
     wire [31:0] pc_current, pc_plus_4_if, pc_next, instruction_if;
     wire [31:0] pc_plus_4_id, instruction_id, sign_ext_id, read_data1_id, read_data2_id, branch_target_id;
-    reg  [31:0] cmp_in_a, cmp_in_b; // Changed to reg for always block
+    reg  [31:0] cmp_in_a, cmp_in_b; 
     wire [5:0] opcode_id, funct_id;
     wire [4:0] rs_id, rt_id, rd_id;
     wire pc_write, if_id_write, control_mux_sel, pc_src_id, if_flush_id;
@@ -315,7 +306,7 @@ module mips_top(
     wire reg_write_ex, mem_to_reg_ex, mem_read_ex, mem_write_ex, reg_dst_ex, alu_src_ex;
     wire [1:0] alu_op_ex, forward_a, forward_b;
     wire [3:0] alu_control_ex;
-    reg  [31:0] alu_in_a, alu_in_b_forwarded; // Changed to reg for always block
+    reg  [31:0] alu_in_a, alu_in_b_forwarded; 
     wire [31:0] alu_in_b_final, alu_result_ex;
     
     wire reg_write_mem, mem_to_reg_mem, mem_read_mem, mem_write_mem;
@@ -326,9 +317,9 @@ module mips_top(
     wire [31:0] read_data_wb, alu_result_wb, write_data_wb;
     wire [4:0] write_reg_wb;
 
-    // =======================================================
+    
     // STAGE 1: INSTRUCTION FETCH (IF)
-    // =======================================================
+    
     assign pc_plus_4_if = pc_current + 32'd4;
     assign pc_next = (pc_src_id) ? branch_target_id : pc_plus_4_if;
 
@@ -347,9 +338,9 @@ module mips_top(
         .pc_plus_4_out(pc_plus_4_id), .inst_out(instruction_id)
     );
 
-    // =======================================================
+    
     // STAGE 2: INSTRUCTION DECODE (ID)
-    // =======================================================
+    
     assign opcode_id = instruction_id[31:26];
     assign rs_id     = instruction_id[25:21];
     assign rt_id     = instruction_id[20:16];
@@ -389,7 +380,7 @@ module mips_top(
         .forward_a_id(forward_a_id), .forward_b_id(forward_b_id)
     );
 
-    // Cleaned up ID Stage Forwarding Muxes
+    
     always @(*) begin
         case(forward_a_id)
             2'b10:   cmp_in_a = alu_result_mem;
@@ -422,9 +413,9 @@ module mips_top(
         .rs_out(rs_ex), .rt_out(rt_ex), .rd_out(rd_ex)
     );
 
-    // =======================================================
+    
     // STAGE 3: EXECUTE (EX)
-    // =======================================================
+    
     assign write_reg_ex = (reg_dst_ex) ? rd_ex : rt_ex;
 
     forwarding_unit fwd_unit (
@@ -433,7 +424,7 @@ module mips_top(
         .forward_a(forward_a), .forward_b(forward_b)
     );
 
-    // Cleaned up EX Stage Forwarding Muxes
+    // EX Stage Forwarding Muxes
     always @(*) begin
         case(forward_a)
             2'b10:   alu_in_a = alu_result_mem;
@@ -448,7 +439,7 @@ module mips_top(
         endcase
     end
 
-    // ALU Src Mux (2-to-1)
+   
     assign alu_in_b_final = (alu_src_ex) ? sign_ext_ex : alu_in_b_forwarded;
 
     alu_control alu_ctrl_unit (.alu_op(alu_op_ex), .funct(sign_ext_ex[5:0]), .alu_ctrl(alu_control_ex));
@@ -462,9 +453,9 @@ module mips_top(
         .alu_result_out(alu_result_mem), .write_data_out(write_data_mem), .dest_reg_out(write_reg_mem)
     );
 
-    // =======================================================
+    
     // STAGE 4: MEMORY (MEM)
-    // =======================================================
+    
     data_memory dmem (
         .clk(clk), .mem_read(mem_read_mem), .mem_write(mem_write_mem),
         .address(alu_result_mem), .write_data(write_data_mem), .read_data(read_data_mem)
@@ -478,9 +469,9 @@ module mips_top(
         .read_data_out(read_data_wb), .alu_result_out(alu_result_wb), .dest_reg_out(write_reg_wb)
     );
 
-    // =======================================================
+ 
     // STAGE 5: WRITEBACK (WB)
-    // =======================================================
+    
     assign write_data_wb = (mem_to_reg_wb) ? read_data_wb : alu_result_wb;
 
 endmodule
