@@ -39,17 +39,17 @@ module mips_tb();
 
     
     initial begin
-        // 1. Boot up and hold Reset
+       
         clk = 0;
         reset = 1;
         
-        // 2. Wait 2 clock cycles to let everything settle
+        
         #20; 
         
-        // 3. Release Reset! The PC starts fetching at address 0.
+        
         reset = 0;
 
-        // 4. Let the processor run for 500 nanoseconds
+        
         #500; 
         
         // 5. Stop the simulation
